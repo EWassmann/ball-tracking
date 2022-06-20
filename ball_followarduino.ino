@@ -43,7 +43,7 @@ void loop() {
     esc.write(60);
   }
   if (commandfromjetson == 4){
-    servo1.writeMicroseconds(15000);
+    servo1.writeMicroseconds(1500);
     esc.write(80);
   }
   // wait for a second
