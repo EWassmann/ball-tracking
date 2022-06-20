@@ -105,6 +105,8 @@ while True:
             cv2.circle(frame, (int(x), int(y)), int(radius),
                 (0, 0, 0), 2)
             cv2.circle(frame, center, 5, (0, 0, 0), -1)
+            #here is where the movement decisions begin
+            #0 is forward 1 is left 2 is right 4 is stop and 3 is go backwards
             if radius < 200:
                 if radius <150:
                     if x > 400:
@@ -165,7 +167,7 @@ while True:
 
 
  
-
+#uncomment below if you want to view the video
     # # show the frame to our screen
     # cv2.imshow("Image Tracker", frame)
     # key = cv2.waitKey(1) & 0xFF

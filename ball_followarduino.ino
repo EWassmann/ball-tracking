@@ -24,19 +24,19 @@ void loop() {
   //waiting for jetson command
   if (Serial.available()>0){
   commandfromjetson = Serial.readString().toInt();
- 
+ //0 is straight 1 is left 2 is right 3 is bacwards 4 is stop
   if (commandfromjetson == 0){
     servo1.writeMicroseconds(1500);
     esc.write(95);
   }
   if (commandfromjetson == 1){
   servo1.writeMicroseconds(2000);  
-  esc.write(95); // turn the LED on (HIGH is the voltage level)
-  }                       // wait for a second
+  esc.write(95); 
+  }                       
   if (commandfromjetson ==2){
   servo1.writeMicroseconds(1000);   
   esc.write(95);
-  // turn the LED off by making the voltage LOW
+  
   }
   if (commandfromjetson == 3){
     servo1.writeMicroseconds(1500);
