@@ -14,6 +14,9 @@ import cv2
 import serial
 import time
 h = 700
+b = 6
+nb = 3
+ls = 0
 arduino = serial.Serial(
 port = '/dev/ttyACM0',
 baudrate = 2000000,
@@ -56,6 +59,7 @@ else:
 
 # keep looping
 while True:
+
     # grab the current frame
     (grabbed, frame) = camera.read()
 
@@ -70,7 +74,7 @@ while True:
     # blurred = cv2.GaussianBlur(frame, (11, 11), 0)
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-    # construct a mask for the color "green", then perform
+    # construct a mask for the color "orange", then perform
     # a series of dilations and erosions to remove any small
     # blobs left in the mask
     mask = cv2.inRange(hsv, orangeLower, orangeUpper)
@@ -82,9 +86,10 @@ while True:
     cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
         cv2.CHAIN_APPROX_SIMPLE)[-2]
     center = None
-
+  
     # only proceed if at least one contour was found
     if len(cnts) > 0:
+        nb = 1
         # find the largest contour in the mask, then use
         # it to compute the minimum enclosing circle and
         # centroid
@@ -92,6 +97,7 @@ while True:
         ((x, y), radius) = cv2.minEnclosingCircle(c)
         M = cv2.moments(c)
         center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+        #print(radius)
 
         # only proceed if the radius meets a minimum size
         if radius > 10:
@@ -100,30 +106,58 @@ while True:
             cv2.circle(frame, (int(x), int(y)), int(radius),
                 (0, 0, 0), 2)
             cv2.circle(frame, center, 5, (0, 0, 0), -1)
-            if x > 400:
-                if h < 400:
-                    arduino.write("2".encode())
-                    print(2)
-                    #time.sleep(1)
-            if x <200:
-                if h >200:
-                    arduino.write("1".encode()) 
-                    print(1)
-                    #time.sleep(1)
-            if x > 200 and x < 4000:
-                if h < 200: 
-                    arduino.write("0".encode())
-                    print(0)
-                    #time.sleep(1)
-                elif h > 400:
-                    arduino.write("0".encode())
-                    print(0)
-                    #time.sleep(1)
+            if radius < 200:
+                if radius <150:
+                    if x > 400:
+                        if b!= 2:
+                            arduino.write("2".encode())
+                            b = 2
+                           #print(2)
+                            time.sleep(1.3)
+                    if x <200:
+                        if b != 1:
+                            arduino.write("1".encode()) 
+                            b = 1
+                            #print(1)
+                            time.sleep(1.3)
+                    if x > 200 and x < 400:
+                        if b != 0: 
+                            arduino.write("0".encode())
+                            b = 0
+                            #print(0)
+                            time.sleep(1.3)
+                        # elif h > 400:
+                        #     arduino.write("0".encode())
+                        #     b = 0
+                        #     #print(0)
+                        #     #time.sleep(1)
+                if radius >= 150:
+                    if b != 4:
+                        arduino.write("4".encode())
+                        b=4
+            if radius > 200:
+                if b!= 3:
+                    arduino.write("3".encode())
+                    b =3
         h = x
-    if len(cnts) <=0:
-        arduino.write("2".encode())
-        print("looking for ball")   
+    if len(cnts) <=0: #subs this with radius?
+        if nb != 2:
+            nb = 2
+            if ls == 2 :
+                arduino.write("1".encode())
+                #print("looking for ball")  
+                b = 1  
+                ls = 1
+            else :
+                arduino.write("2".encode())
+                b = 2
+                ls = 2
 
+        
+
+
+
+            
             
 
 
@@ -131,7 +165,7 @@ while True:
 
     # update the points queue
     pts.appendleft(center)
-
+ 
     # loop over the set of tracked points
 # 	for i in xrange(1, len(pts)):
 #		# if either of the tracked points are None, ignore
@@ -144,13 +178,13 @@ while True:
         #thickness = int(np.sqrt(args["buffer"] / float(i + 1)) * 2.5)
         #cv2.line(frame, pts[i - 1], pts[i], (0, 0, 255), thickness)
 
-    # show the frame to our screen
-    cv2.imshow("Image Tracker", frame)
-    key = cv2.waitKey(1) & 0xFF
+    # # show the frame to our screen
+    # cv2.imshow("Image Tracker", frame)
+    # key = cv2.waitKey(1) & 0xFF
 
-    # if the 'q' key is pressed, stop the loop
-    if key == ord("q"):
-        break
+    # # if the 'q' key is pressed, stop the loop
+    # if key == ord("q"):
+    #     break
 
 # cleanup the camera and close any open windows
 camera.release()
