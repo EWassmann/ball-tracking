@@ -1,4 +1,4 @@
-#include <Arduino.h>
+ #include <Arduino.h>
 #include <Servo.h>
 
 Servo servo1;
@@ -27,17 +27,26 @@ void loop() {
  
   if (commandfromjetson == 0){
     servo1.writeMicroseconds(1500);
-    esc.write(100);
+    esc.write(95);
   }
   if (commandfromjetson == 1){
   servo1.writeMicroseconds(2000);  
-  esc.write(100); // turn the LED on (HIGH is the voltage level)
+  esc.write(95); // turn the LED on (HIGH is the voltage level)
   }                       // wait for a second
   if (commandfromjetson ==2){
   servo1.writeMicroseconds(1000);   
-  esc.write(100);
+  esc.write(95);
   // turn the LED off by making the voltage LOW
-  }                      // wait for a second
+  }
+  if (commandfromjetson == 3){
+    servo1.writeMicroseconds(1500);
+    esc.write(60);
+  }
+  if (commandfromjetson == 4){
+    servo1.writeMicroseconds(15000);
+    esc.write(80);
+  }
+  // wait for a second
 
   }  
   
