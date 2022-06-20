@@ -4,9 +4,8 @@
 
 # import the necessary packages
 import sys
-# sys.path.append('/usr/local/lib/python2.7/site-packages')
-# sys.path.append('/Users/gilblankenship/.local/bin')
 from collections import deque
+from imutils.video import VideoStream
 import numpy as np
 import argparse
 import imutils
@@ -51,21 +50,21 @@ pts = deque(maxlen=args["buffer"])
 # if a video path was not supplied, grab the reference
 # to the webcam
 if not args.get("video", False):
-    camera = cv2.VideoCapture(0)
-
+	camera = VideoStream(src=0).start()
 # otherwise, grab a reference to the video file
 else:
     camera = cv2.VideoCapture(args["video"])
 
 # keep looping
 while True:
+    
 
-    # grab the current frame
-    (grabbed, frame) = camera.read()
-
+    frame = camera.read()
+    # handle the frame from VideoCapture or VideoStream
+    frame = frame[1] if args.get("video", False) else frame
     # if we are viewing a video and we did not grab a frame,
     # then we have reached the end of the video
-    if args.get("video") and not grabbed:
+    if frame is None:
         break
 
     # resize the frame, blur it, and convert it to the HSV
@@ -113,24 +112,20 @@ while True:
                             arduino.write("2".encode())
                             b = 2
                            #print(2)
-                            time.sleep(1.3)
+                            #time.sleep(1.3)
                     if x <200:
                         if b != 1:
                             arduino.write("1".encode()) 
                             b = 1
                             #print(1)
-                            time.sleep(1.3)
+                            #time.sleep(1.3)
                     if x > 200 and x < 400:
                         if b != 0: 
                             arduino.write("0".encode())
                             b = 0
                             #print(0)
-                            time.sleep(1.3)
-                        # elif h > 400:
-                        #     arduino.write("0".encode())
-                        #     b = 0
-                        #     #print(0)
-                        #     #time.sleep(1)
+                            #time.sleep(1.3)
+                      
                 if radius >= 150:
                     if b != 4:
                         arduino.write("4".encode())
@@ -153,7 +148,9 @@ while True:
                 b = 2
                 ls = 2
 
-        
+  #b keeps track of what the last command given was, ls keeps track of what the last search command rotation was, h is used to retrieve the previous x value.
+  # nb keeps track if the robot searched the last time through the loop or if it caught a glimpse of the ball. the intention is that if it was searching in a clockwise motion, caught the ball
+  # and went straight or something and then lost it, it should now go in a counter clockwise motion because it probably overshot the ball      
 
 
 
@@ -165,18 +162,9 @@ while True:
 
     # update the points queue
     pts.appendleft(center)
- 
-    # loop over the set of tracked points
-# 	for i in xrange(1, len(pts)):
-#		# if either of the tracked points are None, ignore
-#		# them
-#		if pts[i - 1] is None or pts[i] is None:
-#			continue
 
-        # otherwise, compute the thickness of the line and
-        # draw the connecting lines
-        #thickness = int(np.sqrt(args["buffer"] / float(i + 1)) * 2.5)
-        #cv2.line(frame, pts[i - 1], pts[i], (0, 0, 255), thickness)
+
+ 
 
     # # show the frame to our screen
     # cv2.imshow("Image Tracker", frame)
