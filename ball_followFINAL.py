@@ -1,0 +1,202 @@
+# USAGE
+# python ball_tracking.py --video ball_tracking_example.mp4
+# python ball_tracking.py
+
+# import the necessary packages
+import sys
+from collections import deque
+from imutils.video import VideoStream
+import numpy as np
+import argparse
+import imutils
+import cv2
+import serial
+import time
+#here the variables are set for the first time
+h = 700 #h is always equal to the previouis x value of the ball
+b = 6 #keeps track of the last direction the robot turned so that it does not send the same directions to the arduino multiple times
+q = 2 #keeps track of if the robot was searching last loop or not
+a = time.perf_counter() #timer to find out when its time to search
+
+#setting up serial communications
+arduino = serial.Serial(
+port = '/dev/ttyACM0',
+baudrate = 2000000, #perhaps make this lower need to do research
+bytesize = serial.EIGHTBITS,
+parity = serial.PARITY_NONE,
+stopbits = serial.STOPBITS_ONE,
+timeout = 5,
+xonxoff = False,
+rtscts = False,
+dsrdtr = False,
+writeTimeout = 2
+)
+
+#----------------Functions---------------------------
+def Left():
+    arduino.write("1".encode()) 
+    global b
+    b = 1
+def Forward():
+    arduino.write("0".encode())
+    global b
+    b = 0
+def Right():
+    arduino.write("2".encode())
+    global b
+    b = 2
+def Stop():
+    arduino.write("4".encode())
+    global b
+    b = 4
+def Back():
+    arduino.write("3".encode())
+    global b
+    b = 3
+def Search():
+    arduino.write("5".encode())
+    global b
+    b = 5
+
+
+#----------------------------------------------------
+
+
+
+# construct the argument parse and parse the arguments
+ap = argparse.ArgumentParser()
+ap.add_argument("-v", "--video",
+    help="path to the (optional) video file")
+ap.add_argument("-b", "--buffer", type=int, default=64,
+    help="max buffer size")
+args = vars(ap.parse_args())
+
+# define the lower and upper boundaries of the "green"
+# ball in the HSV color space, then initialize the
+# list of tracked points
+# greenLower = (29, 86, 6)
+# greenUpper = (64, 255, 255)
+# adjust these values
+orangeLower = (0, 170, 150)
+orangeUpper = (15, 255, 255)
+pts = deque(maxlen=args["buffer"])
+
+# if a video path was not supplied, grab the reference
+# to the webcam
+if not args.get("video", False):
+	camera = VideoStream(src=0).start()
+# otherwise, grab a reference to the video file
+else:
+    camera = cv2.VideoCapture(args["video"])
+
+# keep looping
+while True:
+    
+
+    frame = camera.read()
+    # handle the frame from VideoCapture or VideoStream
+    frame = frame[1] if args.get("video", False) else frame
+    # if we are viewing a video and we did not grab a frame,
+    # then we have reached the end of the video
+    if frame is None:
+        break
+
+    # resize the frame, blur it, and convert it to the HSV
+    # color space
+    frame = imutils.resize(frame, width=600)
+    # blurred = cv2.GaussianBlur(frame, (11, 11), 0)
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+    # construct a mask for the color "orange", then perform
+    # a series of dilations and erosions to remove any small
+    # blobs left in the mask
+    mask = cv2.inRange(hsv, orangeLower, orangeUpper)
+    mask = cv2.erode(mask, None, iterations=2)
+    mask = cv2.dilate(mask, None, iterations=2)
+
+    # find contours in the mask and initialize the current
+    # (x, y) center of the ball
+    cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
+        cv2.CHAIN_APPROX_SIMPLE)[-2]
+    center = None
+  
+    # only proceed if at least one contour was found
+    if len(cnts) > 0:
+        
+        # find the largest contour in the mask, then use
+        # it to compute the minimum enclosing circle and
+        # centroid
+        c = max(cnts, key=cv2.contourArea)
+        ((x, y), radius) = cv2.minEnclosingCircle(c)
+        M = cv2.moments(c)
+        center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+        #print(radius)
+
+        # only proceed if the radius meets a minimum size
+        if radius > 10:
+            # draw the circle and centroid on the frame,
+            # then update the list of tracked points
+            cv2.circle(frame, (int(x), int(y)), int(radius),
+                (0, 0, 0), 2)
+            cv2.circle(frame, center, 5, (0, 0, 0), -1)
+            #here is where the movement decisions begin
+            #0 is forward 1 is left 2 is right 4 is stop and 3 is go backwards
+            if radius < 200:
+                if radius <150:
+                    if x > 400:
+                        if b!= 2:
+                            Right()
+                            
+                            
+                    if x <200:
+                        if b != 1:
+                            Left()
+                            
+                        
+                    if x > 200 and x < 400:
+                        if b != 0: 
+                            Forward()
+                            
+                            
+                      
+                if radius >= 150:
+                    if b != 4:
+                        Stop()
+                       
+            if radius > 200:
+                if b!= 3:
+                    Back()
+                    
+        h = x
+    if len(cnts) <=0: 
+    
+        if q != 1 and b != 5:
+            a = time.perf_counter()
+            q = 1
+
+        if  q != 2 and  time.perf_counter() - a > 7 :
+            Search()
+            #print(5)
+            q = 2
+        
+        
+
+     
+
+
+
+            
+            
+
+
+
+
+    # update the points queue
+    pts.appendleft(center)
+
+
+
+
+# cleanup the camera and close any open windows
+camera.release()
+cv2.destroyAllWindows()
